@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python + HTML/CSS анимация загрузки</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --success: #15803d;
+      --error: #b91c1c;
+      --muted: #6b7280;
+      --card: #ffffff;
+      --bg: #eef2ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: Arial, sans-serif;
+      background: radial-gradient(circle at top, #ffffff 0%, var(--bg) 45%, #dbeafe 100%);
+      color: #111827;
+    }
+
+    .card {
+      width: min(420px, calc(100vw - 32px));
+      padding: 32px;
+      border-radius: 24px;
+      background: var(--card);
+      box-shadow: 0 24px 60px rgba(79, 70, 229, 0.18);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+
+    .subtitle {
+      margin: 0 0 24px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .file-box {
+      display: block;
+      padding: 18px;
+      border: 2px dashed #c7d2fe;
+      border-radius: 16px;
+      background: #f8fafc;
+      margin-bottom: 18px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .file-box:hover {
+      border-color: var(--primary);
+      background: #eef2ff;
+    }
+
+    input[type="file"] {
+      width: 100%;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 18px;
+      color: white;
+      background: var(--primary);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.2s ease, opacity 0.2s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.75;
+    }
+
+    button.loading {
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    .loader {
+      width: 48px;
+      height: 48px;
+      margin: 24px auto 10px;
+      border: 5px solid #e5e7eb;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.85s linear infinite;
+      display: none;
+    }
+
+    .loader.active {
+      display: block;
+    }
+
+    .message {
+      min-height: 24px;
+      margin-top: 14px;
+      text-align: center;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    .message.success { color: var(--success); }
+    .message.error { color: var(--error); }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(0.98); }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Загрузка файла</h1>
+    <p class="subtitle">CSS-анимация синхронизируется с событием Python через запрос к Flask.</p>
+
+    <form id="uploadForm">
+      <label class="file-box">
+        <input id="fileInput" name="file" type="file" />
+      </label>
+
+      <button id="uploadButton" type="submit">Загрузить</button>
+    </form>
+
+    <div id="loader" class="loader" aria-label="Идет загрузка"></div>
+    <div id="message" class="message"></div>
+  </main>
+
+  <script>
+    const form = document.getElementById("uploadForm");
+    const fileInput = document.getElementById("fileInput");
+    const button = document.getElementById("uploadButton");
+    const loader = document.getElementById("loader");
+    const message = document.getElementById("message");
+
+    function setLoading(isLoading) {
+      button.disabled = isLoading;
+      button.classList.toggle("loading", isLoading);
+      loader.classList.toggle("active", isLoading);
+      button.textContent = isLoading ? "Загрузка..." : "Загрузить";
+    }
+
+    function showMessage(text, type) {
+      message.textContent = text;
+      message.className = `message ${type || ""}`;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!fileInput.files.length) {
+        showMessage("Выберите файл", "error");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+
+      setLoading(true);
+      showMessage("", "");
+
+      try {
+        const response = await fetch("/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Ошибка загрузки");
+        }
+
+        showMessage(data.message, "success");
+      } catch (error) {
+        showMessage(error.message || "Ошибка загрузки файла", "error");
+      } finally {
+        setLoading(false);
+      }
+    });
+  </script>
+</body>
+</html>
