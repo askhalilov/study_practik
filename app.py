@@ -1,3 +1,4 @@
+from pathlib import Path
 from flask import Flask, render_template, request, jsonify
 import time
 
@@ -5,6 +6,7 @@ import time
 def create_app(testing=False):
     app = Flask(__name__)
     app.config["TESTING"] = testing
+    app.config["UPLOAD_FOLDER"] = "uploads"
 
     @app.route("/")
     def index():
@@ -19,6 +21,12 @@ def create_app(testing=False):
                 "success": False,
                 "message": "Файл не выбран"
             }), 400
+
+        upload_folder = Path(app.config["UPLOAD_FOLDER"])
+        upload_folder.mkdir(parents=True, exist_ok=True)
+
+        file_path = upload_folder / file.filename
+        file.save(file_path)
 
         if not testing:
             time.sleep(1)
