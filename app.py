@@ -2,8 +2,9 @@ from flask import Flask, render_template, request, jsonify
 import time
 
 
-def create_app():
+def create_app(testing=False):
     app = Flask(__name__)
+    app.config["TESTING"] = testing
 
     @app.route("/")
     def index():
@@ -19,7 +20,8 @@ def create_app():
                 "message": "Файл не выбран"
             }), 400
 
-        time.sleep(1)
+        if not testing:
+            time.sleep(1)
 
         return jsonify({
             "success": True,
